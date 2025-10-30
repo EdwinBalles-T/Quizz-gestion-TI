@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz: Extreme Programming (XP)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            width: 100%;
+            max-width: 800px;
+            min-height: 500px;
+        }
+        
+        .screen {
+            padding: 40px;
+            display: none;
+        }
+        
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+        
+        h2 {
+            color: #444;
+            margin-bottom: 15px;
+        }
+        
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .question-container {
+            margin-bottom: 25px;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .option {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .option:hover {
+            background-color: #f5f5f5;
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .option.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+            transform: scale(1.02);
+            box-shadow: 0 3px 10px rgba(33, 150, 243, 0.2);
+        }
+        
+        .option.correct {
+            background-color: #e8f5e9;
+            border-color: #4caf50;
+            animation: pulseCorrect 0.6s ease-in-out;
+        }
+        
+        .option.incorrect {
+            background-color: #ffebee;
+            border-color: #f44336;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        .option.correct::after {
+            content: "✓ Correcto";
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .option.incorrect::after {
+            content: "✗ Incorrecto";
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #f44336;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .feedback {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.4s ease;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .feedback.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .feedback.correct {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+        
+        .feedback.incorrect {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 2px solid #f44336;
+        }
+        
+        .explanation {
+            font-size: 0.9rem;
+            font-weight: normal;
+            margin-top: 8px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .progress {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        .timer {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .result-message {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .excellent {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .good {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .average {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .poor {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .stat {
+            padding: 15px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Animaciones */
+        @keyframes pulseCorrect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .score-animation {
+            animation: bounceIn 0.6s ease-out;
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .selection-hint {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Pantalla de inicio -->
+        <div id="start-screen" class="screen">
+            <h1>🧠 Quiz XP</h1>
+            <h2>Extreme Programming</h2>
+            <p>Demuestra tus conocimientos sobre la metodología ágil Extreme Programming (XP) respondiendo 10 preguntas seleccionadas aleatoriamente.</p>
+            <p>El quiz incluye preguntas sobre:</p>
+            <ul style="text-align: left; margin: 15px 0;">
+                <li>Principios y fundamentos de XP</li>
+                <li>Prácticas como TDD y Programación en Parejas</li>
+                <li>Roles y responsabilidades</li>
+                <li>Ventajas y desafíos de la metodología</li>
+            </ul>
+            <p><strong>Instrucciones:</strong> Selecciona UNA respuesta por pregunta. No puedes cambiar tu respuesta una vez seleccionada.</p>
+            <button class="btn" id="start-btn">🚀 Empezar Quiz</button>
+        </div>
+        
+        <!-- Pantalla del quiz -->
+        <div id="quiz-screen" class="screen">
+            <div class="timer" id="timer">Tiempo: 00:00</div>
+            <div class="progress">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="question-container">
+                <h2 id="question-number">Pregunta 1 de 10</h2>
+                <p id="question-text"></p>
+            </div>
+            
+            <div class="feedback" id="feedback">
+                <div id="feedback-text"></div>
+                <div id="feedback-explanation" class="explanation"></div>
+            </div>
+            
+            <div class="options" id="options-container"></div>
+            
+            <div class="selection-hint" id="selection-hint">💡 Selecciona una respuesta para continuar</div>
+            
+            <div class="navigation">
+                <button class="btn" id="prev-btn">⬅ Anterior</button>
+                <button class="btn" id="next-btn" disabled>Siguiente ➡</button>
+            </div>
+        </div>
+        
+        <!-- Pantalla de resultados -->
+        <div id="results-screen" class="screen">
+            <h1>🎯 Resultados del Quiz</h1>
+            <div id="result-message" class="result-message"></div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value score-animation" id="score">0/10</div>
+                    <div class="stat-label">Preguntas Correctas</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value score-animation" id="percentage">0%</div>
+                    <div class="stat-label">Porcentaje</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value score-animation" id="time-taken">00:00</div>
+                    <div class="stat-label">Tiempo</div>
+                </div>
+            </div>
+            <div id="results-details"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" id="restart-btn">🔄 Intentar de Nuevo</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Banco completo de 20 preguntas
+        const allQuestions = [
+            {
+                question: "¿Qué es Extreme Programming (XP)?",
+                correct: "Una metodología ágil creada por Kent Beck en los años 90.",
+                incorrect: [
+                    "Un lenguaje de programación.",
+                    "Un tipo de base de datos.",
+                    "Un sistema operativo."
+                ],
+                explanation: "XP es una metodología de desarrollo ágil que se enfoca en la calidad del software y la satisfacción del cliente."
+            },
+            {
+                question: "¿Quién creó Extreme Programming?",
+                correct: "Kent Beck.",
+                incorrect: [
+                    "Bill Gates.",
+                    "Linus Torvalds.",
+                    "Steve Jobs."
+                ],
+                explanation: "Kent Beck desarrolló XP mientras trabajaba en el proyecto Chrysler Comprehensive Compensation System."
+            },
+            {
+                question: "¿Cuál es uno de los objetivos principales de XP?",
+                correct: "Reducir riesgos y aumentar la satisfacción del cliente.",
+                incorrect: [
+                    "Aumentar la burocracia.",
+                    "Reducir la comunicación con el cliente.",
+                    "Eliminar las pruebas de software."
+                ],
+                explanation: "XP busca entregar software de calidad mediante iteraciones cortas y comunicación constante con el cliente."
+            },
+            {
+                question: "¿Cuáles son algunos de los principios de XP?",
+                correct: "Simplicidad, Retroalimentación, Comunicación.",
+                incorrect: [
+                    "Complejidad, Aislamiento, Jerarquía.",
+                    "Rigidez, Secretismo, Individualismo.",
+                    "Lentitud, Informalidad, Desorganización."
+                ],
+                explanation: "Estos principios permiten adaptarse a cambios y mantener alta calidad en el desarrollo."
+            },
+            {
+                question: "¿En qué consiste el Desarrollo Guiado por Pruebas (TDD)?",
+                correct: "Escribir pruebas antes que el código.",
+                incorrect: [
+                    "Escribir código sin pruebas.",
+                    "Probar solo al final del proyecto.",
+                    "Eliminar todas las pruebas manuales."
+                ],
+                explanation: "TDD sigue el ciclo: escribir prueba que falle, hacer que pase, refactorizar."
+            },
+            {
+                question: "¿Qué es la Integración Continua en XP?",
+                correct: "Integrar el código varias veces al día y probarlo automáticamente.",
+                incorrect: [
+                    "Integrar el código una vez al mes.",
+                    "No integrar hasta que el proyecto esté terminado.",
+                    "Integrar solo los viernes."
+                ],
+                explanation: "La integración continua detecta errores rápidamente y mantiene el sistema estable."
+            },
+            {
+                question: "¿Qué es la Refactorización?",
+                correct: "Mejorar el código sin cambiar su funcionalidad.",
+                incorrect: [
+                    "Cambiar la funcionalidad sin tocar el código.",
+                    "Eliminar código sin reemplazarlo.",
+                    "Escribir código desde cero."
+                ],
+                explanation: "La refactorización mejora la legibilidad, mantenibilidad y eficiencia del código."
+            },
+            {
+                question: "¿Qué es la Programación en Parejas?",
+                correct: "Dos desarrolladores trabajan juntos: uno escribe y el otro revisa.",
+                incorrect: [
+                    "Un programador escribe mientras el otro duerme.",
+                    "Dos programadores trabajan en proyectos diferentes.",
+                    "Un programador escribe y otro prueba en otro equipo."
+                ],
+                explanation: "Esta práctica mejora la calidad del código y comparte conocimiento en el equipo."
+            },
+            {
+                question: "¿Qué significa 'Propiedad Colectiva del Código'?",
+                correct: "Cualquier miembro del equipo puede mejorar cualquier parte del sistema.",
+                incorrect: [
+                    "Solo el líder puede modificar el código.",
+                    "Cada programador es dueño de su código y nadie más puede tocarlo.",
+                    "El cliente es el dueño del código."
+                ],
+                explanation: "Esto evita cuellos de botella y permite que el equipo sea más flexible."
+            },
+            {
+                question: "¿Qué roles empresariales se mencionan en XP?",
+                correct: "Clientes, Programadores, Coach, Tracker, Tester.",
+                incorrect: [
+                    "Gerente, Contador, Abogado.",
+                    "Diseñador, Marketing, Ventas.",
+                    "Arquitecto, Consultor, Auditor."
+                ],
+                explanation: "Cada rol tiene responsabilidades específicas que contribuyen al éxito del proyecto."
+            },
+            {
+                question: "¿Qué ventaja ofrece XP en cuanto a la calidad del código?",
+                correct: "Alta calidad gracias a prácticas como programación en parejas y refactorización.",
+                incorrect: [
+                    "Baja calidad debido a la rapidez.",
+                    "No se preocupa por la calidad.",
+                    "La calidad es responsabilidad del cliente."
+                ],
+                explanation: "Las prácticas técnicas de XP aseguran un código limpio, mantenible y de alta calidad."
+            },
+            {
+                question: "¿Cómo ayuda XP a reducir errores?",
+                correct: "Mediante pruebas continuas y detección inmediata de errores.",
+                incorrect: [
+                    "Ignorando los errores hasta el final.",
+                    "Eliminando todas las pruebas.",
+                    "Contratando más auditores."
+                ],
+                explanation: "Las pruebas automatizadas y la integración continua detectan errores temprano."
+            },
+            {
+                question: "¿Qué permite la adaptación rápida al cambio en XP?",
+                correct: "Entregas pequeñas y frecuentes.",
+                incorrect: [
+                    "Entregas anuales.",
+                    "Planificación rígida.",
+                    "Cambios solo al final del proyecto."
+                ],
+                explanation: "Las iteraciones cortas permiten ajustar el rumbo según la retroalimentación del cliente."
+            },
+            {
+                question: "¿Cómo mejora XP la comunicación con el cliente?",
+                correct: "Reuniones frecuentes para validar avances.",
+                incorrect: [
+                    "Evitando el contacto con el cliente.",
+                    "Solo al inicio y al final del proyecto.",
+                    "Usando solo correo electrónico."
+                ],
+                explanation: "El cliente participa activamente en la planificación y revisión de iteraciones."
+            },
+            {
+                question: "¿Cuál es uno de los desafíos de XP?",
+                correct: "Requiere mucha disciplina técnica.",
+                incorrect: [
+                    "No requiere disciplina.",
+                    "Es ideal para equipos muy grandes.",
+                    "El cliente no necesita involucrarse."
+                ],
+                explanation: "Las prácticas de XP exigen compromiso y disciplina constante del equipo."
+            },
+            {
+                question: "¿Para qué tipo de proyectos NO es ideal XP?",
+                correct: "Proyectos con equipos grandes o dispersos.",
+                incorrect: [
+                    "Proyectos pequeños.",
+                    "Proyectos con equipos cohesionados.",
+                    "Proyectos con clientes involucrados."
+                ],
+                explanation: "XP funciona mejor con equipos pequeños, co-localizados y clientes disponibles."
+            },
+            {
+                question: "¿Qué se necesita del cliente en XP?",
+                correct: "Debe estar muy involucrado.",
+                incorrect: [
+                    "No debe participar.",
+                    "Solo debe pagar.",
+                    "Solo debe aparecer al final."
+                ],
+                explanation: "El cliente define historias de usuario, establece prioridades y valida entregas."
+            },
+            {
+                question: "¿Qué práctica técnica promueve XP para mejorar el código?",
+                correct: "Refactorización continua.",
+                incorrect: [
+                    "Escribir código una vez y no tocarlo.",
+                    "Evitar comentarios en el código.",
+                    "No documentar nada."
+                ],
+                explanation: "La refactorización continua mantiene el código limpio y adaptable a cambios."
+            },
+            {
+                question: "¿Qué se logra con la Programación en Parejas?",
+                correct: "Detección rápida de errores y compartir conocimiento.",
+                incorrect: [
+                    "Aumentar la carga de trabajo individual.",
+                    "Reducir la comunicación.",
+                    "Disminuir la calidad del código."
+                ],
+                explanation: "Dos pares de ojos ven más que uno, mejorando la calidad y compartiendo conocimiento."
+            },
+            {
+                question: "¿Qué implica la Retroalimentación Constante en XP?",
+                correct: "Pruebas, diseño y planificación continuas.",
+                incorrect: [
+                    "Solo al final del proyecto.",
+                    "Solo al inicio.",
+                    "Solo cuando hay problemas graves."
+                ],
+                explanation: "La retroalimentación constante permite ajustes rápidos y mejora continua."
+            }
+        ];
+
+        // Variables globales
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let startTime;
+        let timerInterval;
+        let timeElapsed = 0;
+        let answeredQuestions = new Set();
+
+        // Elementos DOM
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const startBtn = document.getElementById('start-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const questionNumber = document.getElementById('question-number');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressBar = document.getElementById('progress-bar');
+        const timer = document.getElementById('timer');
+        const scoreElement = document.getElementById('score');
+        const percentageElement = document.getElementById('percentage');
+        const timeTakenElement = document.getElementById('time-taken');
+        const resultMessage = document.getElementById('result-message');
+        const resultsDetails = document.getElementById('results-details');
+        const feedback = document.getElementById('feedback');
+        const feedbackText = document.getElementById('feedback-text');
+        const feedbackExplanation = document.getElementById('feedback-explanation');
+        const selectionHint = document.getElementById('selection-hint');
+
+        // Inicializar el quiz
+        startBtn.addEventListener('click', startQuiz);
+        prevBtn.addEventListener('click', showPreviousQuestion);
+        nextBtn.addEventListener('click', showNextQuestion);
+        restartBtn.addEventListener('click', restartQuiz);
+
+        // Función para iniciar el quiz
+        function startQuiz() {
+            // Seleccionar 10 preguntas aleatorias
+            currentQuestions = getRandomQuestions(allQuestions, 10);
+            currentQuestionIndex = 0;
+            userAnswers = new Array(10).fill(null);
+            answeredQuestions.clear();
+            
+            // Iniciar temporizador
+            startTime = new Date();
+            timeElapsed = 0;
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Mostrar pantalla del quiz
+            startScreen.style.display = 'none';
+            quizScreen.style.display = 'block';
+            resultsScreen.style.display = 'none';
+            
+            // Mostrar primera pregunta
+            showQuestion();
+        }
+
+        // Función para mostrar una pregunta
+        function showQuestion() {
+            const question = currentQuestions[currentQuestionIndex];
+            const isAnswered = answeredQuestions.has(currentQuestionIndex);
+            
+            // Ocultar feedback anterior
+            feedback.className = 'feedback';
+            feedbackText.textContent = '';
+            feedbackExplanation.textContent = '';
+            
+            // Actualizar número de pregunta
+            questionNumber.textContent = `Pregunta ${currentQuestionIndex + 1} de 10`;
+            
+            // Actualizar texto de la pregunta
+            questionText.textContent = question.question;
+            
+            // Actualizar barra de progreso
+            progressBar.style.width = `${((currentQuestionIndex + 1) / 10) * 100}%`;
+            
+            // Actualizar estado del botón siguiente
+            nextBtn.disabled = !isAnswered;
+            selectionHint.style.display = isAnswered ? 'none' : 'block';
+            
+            // Limpiar opciones anteriores
+            optionsContainer.innerHTML = '';
+            
+            // Mezclar opciones (correcta + incorrectas)
+            const options = [question.correct, ...question.incorrect];
+            const shuffledOptions = [...options].sort(() => 0.5 - Math.random());
+            
+            // Crear elementos de opción
+            shuffledOptions.forEach(option => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = option;
+                
+                // Si la pregunta ya fue respondida, mostrar estado final
+                if (isAnswered) {
+                    optionElement.style.cursor = 'default';
+                    optionElement.classList.remove('hover');
+                    
+                    if (userAnswers[currentQuestionIndex] === option) {
+                        optionElement.classList.add('selected');
+                        if (option === question.correct) {
+                            optionElement.classList.add('correct');
+                        } else {
+                            optionElement.classList.add('incorrect');
+                        }
+                    } else if (option === question.correct) {
+                        optionElement.classList.add('correct');
+                    }
+                } else {
+                    // Pregunta sin responder - permitir selección
+                    optionElement.addEventListener('click', () => selectOption(option, optionElement));
+                }
+                
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            // Actualizar botones de navegación
+            prevBtn.style.visibility = currentQuestionIndex === 0 ? 'hidden' : 'visible';
+            nextBtn.textContent = currentQuestionIndex === 9 ? 'Ver Resultados' : 'Siguiente ➡';
+            
+            // Mostrar feedback si ya fue respondida
+            if (isAnswered) {
+                showQuestionFeedback();
+            }
+        }
+
+        // Función para seleccionar una opción
+        function selectOption(option, optionElement) {
+            // Si ya se respondió esta pregunta, no hacer nada
+            if (answeredQuestions.has(currentQuestionIndex)) {
+                return;
+            }
+            
+            const question = currentQuestions[currentQuestionIndex];
+            const isCorrect = option === question.correct;
+            
+            // Deshabilitar todas las opciones
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => {
+                opt.style.cursor = 'default';
+                opt.removeEventListener('click', selectOption);
+            });
+            
+            // Marcar opción seleccionada
+            optionElement.classList.add('selected');
+            
+            // Guardar respuesta del usuario
+            userAnswers[currentQuestionIndex] = option;
+            answeredQuestions.add(currentQuestionIndex);
+            
+            // Mostrar retroalimentación visual
+            options.forEach(opt => {
+                if (opt.textContent === question.correct) {
+                    opt.classList.add('correct');
+                } else if (opt.textContent === option && !isCorrect) {
+                    opt.classList.add('incorrect');
+                }
+            });
+            
+            // Habilitar botón siguiente
+            nextBtn.disabled = false;
+            selectionHint.style.display = 'none';
+            
+            // Mostrar feedback
+            showQuestionFeedback();
+        }
+
+        // Función para mostrar feedback de la pregunta actual
+        function showQuestionFeedback() {
+            const question = currentQuestions[currentQuestionIndex];
+            const userAnswer = userAnswers[currentQuestionIndex];
+            const isCorrect = userAnswer === question.correct;
+            
+            if (isCorrect) {
+                feedbackText.textContent = "¡Correcto! 🎉 " + getRandomCongratulation();
+                feedback.className = 'feedback correct show';
+            } else {
+                feedbackText.textContent = "Incorrecto 😔 La respuesta correcta es: " + question.correct;
+                feedback.className = 'feedback incorrect show';
+            }
+            
+            if (question.explanation) {
+                feedbackExplanation.textContent = "💡 " + question.explanation;
+            }
+        }
+
+        // Función para obtener mensajes de felicitación aleatorios
+        function getRandomCongratulation() {
+            const congrats = [
+                "¡Excelente respuesta!",
+                "¡Perfecto! Sigues así.",
+                "¡Bien hecho! Dominas el tema.",
+                "¡Correcto! Tu conocimiento brilla.",
+                "¡Impresionante! No te equivocas.",
+                "¡Bravo! Respuesta acertada."
+            ];
+            return congrats[Math.floor(Math.random() * congrats.length)];
+        }
+
+        // Función para mostrar pregunta anterior
+        function showPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showQuestion();
+            }
+        }
+
+        // Función para mostrar siguiente pregunta
+        function showNextQuestion() {
+            if (currentQuestionIndex < 9) {
+                currentQuestionIndex++;
+                showQuestion();
+            } else {
+                // Mostrar resultados si es la última pregunta
+                showResults();
+            }
+        }
+
+        // Función para mostrar resultados
+        function showResults() {
+            // Detener temporizador
+            clearInterval(timerInterval);
+            
+            // Calcular puntuación
+            let score = 0;
+            currentQuestions.forEach((question, index) => {
+                if (userAnswers[index] === question.correct) {
+                    score++;
+                }
+            });
+            
+            const percentage = (score / 10) * 100;
+            
+            // Mostrar pantalla de resultados
+            startScreen.style.display = 'none';
+            quizScreen.style.display = 'none';
+            resultsScreen.style.display = 'block';
+            
+            // Actualizar estadísticas
+            scoreElement.textContent = `${score}/10`;
+            percentageElement.textContent = `${percentage}%`;
+            timeTakenElement.textContent = formatTime(timeElapsed);
+            
+            // Mostrar mensaje según el puntaje
+            let message = '';
+            let messageClass = '';
+            
+            if (percentage === 100) {
+                message = '¡Excelente! 🎉 Se nota que prestaste mucha atención a la exposición. ¡Eres un experto en XP!';
+                messageClass = 'excellent';
+                createConfetti();
+            } else if (percentage >= 80) {
+                message = '¡Muy bien! 👍 Tienes un excelente conocimiento de Extreme Programming.';
+                messageClass = 'good';
+            } else if (percentage >= 60) {
+                message = 'Buen trabajo 😊 Tienes conocimientos sólidos, pero puedes repasar algunos conceptos.';
+                messageClass = 'average';
+            } else {
+                message = 'Sigue estudiando 📚 Te recomendamos repasar los conceptos de XP para mejorar.';
+                messageClass = 'poor';
+            }
+            
+            resultMessage.textContent = message;
+            resultMessage.className = `result-message ${messageClass}`;
+            
+            // Mostrar detalles de las respuestas
+            resultsDetails.innerHTML = '<h3>Detalle de respuestas:</h3>';
+            currentQuestions.forEach((question, index) => {
+                const isCorrect = userAnswers[index] === question.correct;
+                const answerClass = isCorrect ? 'correct' : 'incorrect';
+                
+                resultsDetails.innerHTML += `
+                    <div class="${answerClass}" style="padding: 10px; margin: 10px 0; border-radius: 5px;">
+                        <p><strong>Pregunta ${index + 1}:</strong> ${question.question}</p>
+                        <p><strong>Tu respuesta:</strong> ${userAnswers[index] || 'Sin respuesta'}</p>
+                        <p><strong>Respuesta correcta:</strong> ${question.correct}</p>
+                        ${question.explanation ? `<p><strong>Explicación:</strong> ${question.explanation}</p>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        // Función para crear efecto de confeti
+        function createConfetti() {
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                document.body.appendChild(confetti);
+                
+                // Animación
+                const animation = confetti.animate([
+                    { top: '-10px', opacity: 1, transform: `rotate(0deg)` },
+                    { top: '100vh', opacity: 0, transform: `rotate(${Math.random() * 360}deg)` }
+                ], {
+                    duration: 2000 + Math.random() * 3000,
+                    easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)'
+                });
+                
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+
+        // Función para reiniciar el quiz
+        function restartQuiz() {
+            startScreen.style.display = 'flex';
+            quizScreen.style.display = 'none';
+            resultsScreen.style.display = 'none';
+        }
+
+        // Función auxiliar: seleccionar preguntas aleatorias
+        function getRandomQuestions(questions, count) {
+            const shuffled = [...questions].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        // Función para actualizar el temporizador
+        function updateTimer() {
+            timeElapsed = Math.floor((new Date() - startTime) / 1000);
+            timer.textContent = `Tiempo: ${formatTime(timeElapsed)}`;
+        }
+
+        // Función para formatear el tiempo (segundos a MM:SS)
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
